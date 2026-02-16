@@ -5,7 +5,7 @@ import { MessageList } from './MessageList.tsx';
 import { TextInput } from './TextInput.tsx';
 
 export function Chat() {
-  const { messages, isLoading, sendMessage, clearMessages } = useAgentCore();
+  const { messages, isLoading, sendMessage } = useAgentCore();
   const { speak, stop } = usePollyTTS();
   const lastAssistantRef = useRef<string>('');
 
@@ -26,12 +26,6 @@ export function Chat() {
   const handleSend = async (prompt: string) => {
     stop();
     await sendMessage(prompt);
-  };
-
-  const handleClear = () => {
-    stop();
-    clearMessages();
-    lastAssistantRef.current = '';
   };
 
   return (
