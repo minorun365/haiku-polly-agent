@@ -35,21 +35,16 @@ export function Chat() {
   };
 
   return (
-    <div className="h-full flex flex-col max-w-3xl mx-auto">
-      <div className="flex-1 overflow-y-auto p-4">
-        <MessageList messages={messages} />
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto py-4">
+        <div className="w-[60%] mx-auto">
+          <MessageList messages={messages} />
+        </div>
       </div>
 
-      <div className="border-t bg-white p-4">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="border-t bg-white py-4">
+        <div className="w-[60%] mx-auto">
           <TextInput onSend={handleSend} disabled={isLoading} />
-          <button
-            onClick={handleClear}
-            className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors shrink-0"
-            title="会話をクリア"
-          >
-            クリア
-          </button>
         </div>
       </div>
     </div>

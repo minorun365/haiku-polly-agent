@@ -30,9 +30,9 @@
 
 ## Step 6: 統合テスト + デプロイ
 
-- [ ] `npx ampx sandbox` でデプロイ確認
-- [ ] E2E 動作確認（テキスト入力 → LLM応答表示 → Polly音声再生）
-- [ ] ツール使用の動作確認
+- [x] `npx ampx sandbox` でデプロイ確認
+- [x] E2E 動作確認（テキスト入力 → LLM応答表示 → Polly音声再生）
+- [x] ツール使用の動作確認（get_current_time で JST 時刻応答）
 - [ ] エラーハンドリング確認
 
 ## 将来タスク

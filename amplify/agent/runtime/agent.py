@@ -4,14 +4,14 @@ from bedrock_agentcore import BedrockAgentCoreApp
 from strands import Agent
 
 from config import MODEL_ID, SYSTEM_PROMPT
-from tools import get_current_time, simple_calculator
+from tools import get_current_time, simple_calculator, get_aws_news
 
 app = BedrockAgentCoreApp()
 
 # セッションごとの Agent インスタンスを管理
 _agent_sessions: dict[str, Agent] = {}
 
-TOOLS = [get_current_time, simple_calculator]
+TOOLS = [get_current_time, simple_calculator, get_aws_news]
 
 
 def get_or_create_agent(session_id: str | None) -> Agent:

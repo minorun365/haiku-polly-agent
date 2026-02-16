@@ -42,13 +42,13 @@ function MessageBubble({ message }: { message: Message }) {
       <div
         className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
           isUser
-            ? 'bg-indigo-600 text-white'
+            ? 'bg-emerald-600 text-white'
             : 'bg-white border border-gray-200 text-gray-800 shadow-sm'
         }`}
       >
         {message.toolUse && (
-          <div className="text-xs text-indigo-400 mb-1 flex items-center gap-1">
-            <span className="animate-spin inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full" />
+          <div className="text-xs text-emerald-400 mb-1 flex items-center gap-1">
+            <span className="animate-spin inline-block w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full" />
             {message.toolUse} を使用中...
           </div>
         )}
