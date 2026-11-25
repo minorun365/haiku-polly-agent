@@ -1,6 +1,6 @@
 # Haiku Polly Agent
 
-テキスト入力 + Claude Haiku 4.5 + Amazon Polly で音声応答する AI エージェント。
+テキスト入力に対して Claude Haiku 4.5 と Amazon Polly で音声応答する AI エージェントです。
 
 ## アーキテクチャ
 
@@ -27,7 +27,7 @@
 ### 前提条件
 
 - Node.js 18+
-- AWS アカウント（Bedrock の Claude Haiku 4.5 が有効化済み）
+- Bedrock の Claude Haiku 4.5 が有効になっている AWS アカウント
 - AWS Amplify CLI (`@aws-amplify/backend-cli`)
 
 ### 1. セットアップ
@@ -47,4 +47,4 @@ npm run dev
 
 ### 3. 本番デプロイ
 
-Amplify Console でリポジトリを接続してデプロイ。環境変数の設定は不要です。
+Amplify Console でリポジトリを接続してデプロイします。環境変数の設定は不要です。

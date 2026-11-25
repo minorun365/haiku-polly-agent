@@ -2,10 +2,10 @@
 
 ## 背景
 
-Phase 2 で Nova Sonic の音声対話を E2E で動作確認したが、**日本語の品質が実用レベルに達していない**ことが判明。
+Phase 2 で Nova Sonic の音声対話を E2E で動作確認したところ、日本語の品質が実用レベルに達していないことが分かった。
 Nova Sonic は日本語を公式サポートしておらず、認識精度・応答品質ともに改善の見込みが薄い。
 
-**方針転換**: 音声入力→音声出力の全工程を Nova Sonic に任せるのではなく、各工程を最適なサービスに分離する。
+方針を転換し、音声入力から音声出力までの全工程を Nova Sonic に任せるのではなく、各工程を最適なサービスに分離する。
 
 ---
 
@@ -24,7 +24,7 @@ macOS音声入力 → テキストフィールド
                         （ブラウザから直接呼出）
 ```
 
-**ポイント**: 音声入力は macOS ネイティブ機能に任せ、AgentCore とのやり取りは**テキスト SSE**でシンプルに。TTS はブラウザから Polly を直接呼ぶ。
+音声入力は macOS のネイティブ機能に任せ、AgentCore とのやり取りはテキスト SSE でシンプルに保つ。TTS はブラウザから Polly を直接呼び出す。
 
 ### 旧アーキテクチャとの比較
 
@@ -45,53 +45,53 @@ macOS音声入力 → テキストフィールド
 
 | 候補 | 日本語 | コスト | 実装難度 | ブラウザ |
 |------|--------|--------|---------|---------|
-| **Web Speech API** | ✅ 良好 | 無料 | ⭐ 簡単 | Chrome/Safari |
+| Web Speech API | ✅ 良好 | 無料 | ⭐ 簡単 | Chrome/Safari |
 | Amazon Transcribe Streaming | ✅ 高精度 | 従量課金 | ⭐⭐⭐ | 全ブラウザ |
 | OS 音声入力 | ✅ | 無料 | - | OS依存 |
 
-**選定: Web Speech API**
-- `react-speech-recognition` ライブラリで即座に実装可能
-- Chrome と Safari で動作（主要ブラウザをカバー）
-- 無料で追加コストなし
-- `interimResults` でリアルタイムフィードバック、`isFinal` で確定テキストを取得
+選定: Web Speech API
+- `react-speech-recognition` ライブラリですぐに実装できる
+- Chrome と Safari で動作し、主要ブラウザをカバーする
+- 無料で追加コストがかからない
+- `interimResults` でリアルタイムフィードバック、`isFinal` で確定テキストを取得できる
 
-**制約事項:**
-- Firefox 非対応（必要なら Amazon Transcribe Streaming に切り替え）
-- Chrome は約60秒でセッションタイムアウト（再開にはユーザー操作が必要）
+制約事項:
+- Firefox は非対応（必要なら Amazon Transcribe Streaming に切り替える）
+- Chrome は約60秒でセッションがタイムアウトし、再開にはユーザー操作が必要
 - 音声データが Google/Apple のサーバーに送信される
 
 ### 2. LLM 応答: Claude Haiku 4.5（Bedrock）
 
 | 候補 | TTFT | 品質 | コスト |
 |------|------|------|--------|
-| **Claude Haiku 4.5** | < 1秒 | 高い | 安い |
+| Claude Haiku 4.5 | < 1秒 | 高い | 安い |
 | Claude Sonnet 4.5 | 1-2秒 | 非常に高い | 中程度 |
 
-**選定: Claude Haiku 4.5（デフォルト）、Sonnet 4.5 を選択肢として残す**
-- 音声対話はレイテンシが最重要 → Haiku 4.5 の高速応答が適切
-- Strands Agent の `stream_async` でストリーミング応答
-- ツール使用（`@tool`）もそのまま利用可能
+選定: Claude Haiku 4.5（デフォルト）、Sonnet 4.5 を選択肢として残す
+- 音声対話はレイテンシが最重要なので、応答の速い Haiku 4.5 が適している
+- Strands Agent の `stream_async` でストリーミング応答できる
+- `@tool` によるツール使用もそのまま利用できる
 
 ### 3. 音声出力: Amazon Polly Neural
 
 | 候補 | 日本語 | レイテンシ | コスト | 実装難度 |
 |------|--------|-----------|--------|---------|
-| **Amazon Polly Neural** | ✅ 公式対応 | 低い | $16/100万文字 | ⭐⭐ |
+| Amazon Polly Neural | ✅ 公式対応 | 低い | $16/100万文字 | ⭐⭐ |
 | Nova Sonic 2（Speak-First） | ⚠️ 非公式 | < 700ms | 安い | ⭐⭐⭐ |
 | ブラウザ SpeechSynthesis | ⚠️ 品質低い | 即時 | 無料 | ⭐ |
 
-**選定: Amazon Polly Neural**
-- 日本語音声: **Kazuha**（女性）/ **Takumi**（男性）/ **Tomoko**（女性）
-- ブラウザから直接呼び出し可能（`@aws-sdk/client-polly` + Cognito Identity Pool）
-- SSML 対応（速度・ピッチ調整可能）
-- PCM 16kHz 出力可能 → 既存の AudioWorklet 再生機構を流用できる
+選定: Amazon Polly Neural
+- 日本語音声: Kazuha（女性）/ Takumi（男性）/ Tomoko（女性）
+- `@aws-sdk/client-polly` と Cognito Identity Pool により、ブラウザから直接呼び出せる
+- SSML に対応しており、速度やピッチを調整できる
+- PCM 16kHz で出力できるため、既存の AudioWorklet 再生機構を流用できる
 - 無料枠: 月100万文字（最初の12ヶ月）
 
 ---
 
 ## レイテンシ最適化: パイプライン化
 
-最大の工夫は **LLM ストリーミング応答を文単位で TTS に流す**こと。
+最大の工夫は、**LLM ストリーミング応答を文単位で TTS に流す**ことである。
 
 ### 逐次処理（遅い）
 
@@ -108,10 +108,10 @@ macOS音声入力 → テキストフィールド
                                                                     体感: 1.3秒
 ```
 
-**実装方法:**
+実装方法:
 1. LLM のストリーミング応答を受信しながら、句読点（。！？）で文を区切る
-2. 1文が確定したら即座に Polly に送信
-3. Polly の音声を受信したら順番にキューに積んで再生
+2. 1文が確定したらすぐに Polly に送信する
+3. Polly の音声を受信したら順番にキューへ積んで再生する
 4. LLM がまだ生成中でも、最初の文から再生が始まる
 
 ---
@@ -120,22 +120,22 @@ macOS音声入力 → テキストフィールド
 
 ### Step 1: プロジェクト初期化
 
-nova-sonic/ から参考にしつつ、ルートに新しいプロジェクトを作成。
+nova-sonic/ を参考にしつつ、ルートに新しいプロジェクトを作成する。
 
-**新規作成:**
-- `package.json` — 依存パッケージ（React, Vite, Amplify, `@aws-sdk/client-polly`）
+新規作成:
+- `package.json`: 依存パッケージ（React, Vite, Amplify, `@aws-sdk/client-polly`）
 - `tsconfig.json`, `tsconfig.app.json`, `tsconfig.node.json`, `vite.config.ts`
 - `index.html`
 - `.gitignore`
 
-**流用元:** `nova-sonic/` の同名ファイルをベースにカスタマイズ
+流用元は `nova-sonic/` の同名ファイルで、それをベースにカスタマイズする。
 
 ### Step 2: CDK / インフラ（Amplify + AgentCore）
 
-**新規作成:**
-- `amplify/auth/resource.ts` — Cognito 認証（nova-sonic と同一）
-- `amplify/agent/resource.ts` — AgentCore Runtime 定義（JWT 認証に戻せる、SSE なので）
-- `amplify/backend.ts` — auth + agent 統合、Polly 権限追加
+新規作成:
+- `amplify/auth/resource.ts`: Cognito 認証（nova-sonic と同一）
+- `amplify/agent/resource.ts`: AgentCore Runtime 定義（SSE なので JWT 認証に戻せる）
+- `amplify/backend.ts`: auth と agent の統合、Polly 権限の追加
 
 ```typescript
 // Cognito 認証済みロールに Polly 権限を追加
@@ -145,7 +145,7 @@ authenticatedRole.addToPrincipalPolicy(new iam.PolicyStatement({
 }));
 ```
 
-**バックエンドのモデル権限:**
+バックエンドのモデル権限:
 ```typescript
 // Claude Haiku 4.5 用
 runtime.addToRolePolicy(new iam.PolicyStatement({
@@ -159,12 +159,12 @@ runtime.addToRolePolicy(new iam.PolicyStatement({
 
 ### Step 3: バックエンド（Strands Agent + SSE）
 
-**新規作成:**
-- `amplify/agent/runtime/agent.py` — `@app.entrypoint` で SSE ストリーミング
-- `amplify/agent/runtime/config.py` — Claude Haiku 4.5 設定
-- `amplify/agent/runtime/tools/` — time_tool, calculator（nova-sonic から流用）
-- `amplify/agent/runtime/requirements.txt` — `strands-agents`, `bedrock-agentcore`
-- `amplify/agent/runtime/Dockerfile` — Python 3.13 slim（PyAudio 不要でシンプルに）
+新規作成:
+- `amplify/agent/runtime/agent.py`: `@app.entrypoint` による SSE ストリーミング
+- `amplify/agent/runtime/config.py`: Claude Haiku 4.5 の設定
+- `amplify/agent/runtime/tools/`: time_tool, calculator（nova-sonic から流用）
+- `amplify/agent/runtime/requirements.txt`: `strands-agents`, `bedrock-agentcore`
+- `amplify/agent/runtime/Dockerfile`: Python 3.13 slim（PyAudio 不要でシンプルに構成）
 
 ```python
 # agent.py の核心部分
@@ -188,18 +188,18 @@ async def invoke(payload, context):
 
 ### Step 4: フロントエンド — テキスト入力 + SSE 表示
 
-**新規作成:**
-- `src/main.tsx` — Amplify 初期化
-- `src/App.tsx` — Authenticator + Chat UI
-- `src/hooks/useAgentCore.ts` — SSE ストリーミング接続（marp-agent パターン流用）
-- `src/components/Chat/index.tsx` — メインチャットコンポーネント
-- `src/components/Chat/MessageList.tsx` — メッセージ吹き出し表示
-- `src/components/Chat/TextInput.tsx` — テキスト入力フィールド（Enter で送信）
+新規作成:
+- `src/main.tsx`: Amplify の初期化
+- `src/App.tsx`: Authenticator と Chat UI
+- `src/hooks/useAgentCore.ts`: SSE ストリーミング接続（marp-agent のパターンを流用）
+- `src/components/Chat/index.tsx`: メインチャットコンポーネント
+- `src/components/Chat/MessageList.tsx`: メッセージ吹き出し表示
+- `src/components/Chat/TextInput.tsx`: テキスト入力フィールド（Enter で送信）
 
 ### Step 5: フロントエンド — Amazon Polly TTS 統合
 
-**新規作成:**
-- `src/hooks/usePollyTTS.ts` — Polly 音声合成フック
+新規作成:
+- `src/hooks/usePollyTTS.ts`: Polly 音声合成フック
 
 ```typescript
 // usePollyTTS.ts の概要
@@ -223,13 +223,13 @@ export function usePollyTTS() {
 }
 ```
 
-**パイプライン化（段階的導入）:**
-1. まず全文一括で Polly に渡して再生（シンプル版）
-2. 動作確認後、文単位で分割して順次 Polly に渡すパイプライン化
+パイプライン化（段階的導入）:
+1. まず全文を一括で Polly に渡して再生するシンプル版を作る
+2. 動作確認後、文単位で分割して順次 Polly に渡すパイプライン化へ移行する
 
 ### Step 6: SSE 通信プロトコル
 
-**ブラウザ → バックエンド（HTTP POST）:**
+ブラウザ → バックエンド（HTTP POST）:
 ```json
 POST /runtimes/{encodedARN}/invocations?qualifier=DEFAULT
 Authorization: Bearer <accessToken>
@@ -238,7 +238,7 @@ Content-Type: application/json
 {"prompt": "こんにちは、今何時ですか？", "session_id": "xxx"}
 ```
 
-**バックエンド → ブラウザ（SSE）:**
+バックエンド → ブラウザ（SSE）:
 ```
 data: {"type": "text", "data": "こんにちは！"}
 data: {"type": "text", "data": "現在の時刻は"}
@@ -249,9 +249,9 @@ data: [DONE]
 
 ### Step 7: テスト
 
-- バックエンド: pytest（Agent + SSE ストリーミングのテスト）
+- バックエンド: pytest（Agent と SSE ストリーミングのテスト）
 - フロントエンド: vitest（SSE 接続、Polly TTS、Chat UI のテスト）
-- E2E: テキスト入力→LLM応答表示→Polly音声再生のフロー確認
+- E2E: テキスト入力から LLM 応答表示、Polly 音声再生までの一連のフローを確認
 
 ---
 
@@ -259,25 +259,25 @@ data: [DONE]
 
 | 項目 | 理由 |
 |------|------|
-| `strands-agents[bidi]` | BidiAgent 不要 → `strands-agents` のみ |
-| AudioWorklet（pcm-capture/playback） | 音声バイナリの直接処理不要 |
-| `useAudioInput` / `useAudioOutput` | PCM 変換不要 |
-| `portaudio19-dev` / `build-essential` | PyAudio ビルド不要 |
-| SigV4 presigned URL | SSE は HTTP ベースなので JWT Bearer トークンが使える |
-| `@smithy/signature-v4` 等 | SigV4 署名不要 |
+| `strands-agents[bidi]` | BidiAgent が不要になり、`strands-agents` だけで済む |
+| AudioWorklet（pcm-capture/playback） | 音声バイナリを直接処理する必要がない |
+| `useAudioInput` / `useAudioOutput` | PCM 変換が不要 |
+| `portaudio19-dev` / `build-essential` | PyAudio のビルドが不要 |
+| SigV4 presigned URL | SSE は HTTP ベースなので JWT Bearer トークンを使える |
+| `@smithy/signature-v4` 等 | SigV4 署名が不要 |
 
 ---
 
 ## 新しく必要な依存
 
-**フロントエンド（npm）:**
+フロントエンド（npm）:
 | パッケージ | 用途 |
 |-----------|------|
-| `@aws-sdk/client-polly` | Amazon Polly クライアント（ブラウザから直接呼出） |
+| `@aws-sdk/client-polly` | Amazon Polly クライアント（ブラウザから直接呼び出し） |
 | `aws-amplify` / `@aws-amplify/ui-react` | 認証 UI + Cognito セッション管理 |
 | `react`, `react-dom`, `tailwindcss` | UI フレームワーク |
 
-**バックエンド（pip）:**
+バックエンド（pip）:
 | パッケージ | 用途 |
 |-----------|------|
 | `strands-agents` | Strands Agent（テキストLLM） |
@@ -290,11 +290,11 @@ data: [DONE]
 
 | 項目 | 決定 | 理由 |
 |------|------|------|
-| 音声入力 | **macOS 音声入力 + テキストフィールド** | シンプル、全OS対応 |
-| Polly 音声 | **Kazuha（女性・Neural・130%速度）** | 女性音声で聞きやすい、テキパキ応答 |
-| LLM | **Claude Haiku 4.5（デフォルト）** | 高速 TTFT、音声対話向き |
-| Nova Sonic コード | **完全削除（`nova-sonic/` に退避済み）** | 別リポジトリとして保存 |
-| 通信方式 | **SSE（`@app.entrypoint`）** | テキストのみの片方向ストリーミングに最適 |
+| 音声入力 | macOS 音声入力 + テキストフィールド | シンプルで全OS対応 |
+| Polly 音声 | Kazuha（女性・Neural・130%速度） | 女性音声で聞きやすく、テキパキ応答する |
+| LLM | Claude Haiku 4.5（デフォルト） | TTFT が速く、音声対話向き |
+| Nova Sonic コード | 完全削除（`nova-sonic/` に退避済み） | 別リポジトリとして保存 |
+| 通信方式 | SSE（`@app.entrypoint`） | テキストのみの片方向ストリーミングに最適 |
 
 ---
 
@@ -316,7 +316,7 @@ data: [DONE]
 
 | リスク | 影響度 | 対策 |
 |--------|--------|------|
-| Polly の文単位パイプラインの複雑さ | 中 | まず全文一括 TTS で動作確認後、パイプライン化を段階的に導入 |
-| Polly 音声の自然さ | 低 | Neural エンジン（Takumi）+ SSML で調整可能 |
-| SSE 接続の JWT 認証 | 低 | marp-agent の実績ある認証パターンを流用 |
-| Polly のブラウザ直接呼出しの CORS | 低 | AWS SDK v3 は CORS 対応済み |
+| Polly の文単位パイプラインの複雑さ | 中 | まず全文一括の TTS で動作確認してから、パイプライン化を段階的に導入する |
+| Polly 音声の自然さ | 低 | Neural エンジン（Takumi）と SSML で調整できる |
+| SSE 接続の JWT 認証 | 低 | marp-agent で実績のある認証パターンを流用する |
+| Polly をブラウザから直接呼び出す際の CORS | 低 | AWS SDK v3 は CORS に対応済み |
